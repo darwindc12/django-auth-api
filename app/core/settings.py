@@ -134,8 +134,11 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.AllowAny",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
-
 
 
 # SIMPLE JWT
@@ -171,11 +174,10 @@ DEFAULT_FROM_EMAIL = "no-reply@authapi.com"
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "Authentication API",
-    "DESCRIPTION": "User management and authentication service",
+    "DESCRIPTION": "Production-ready user authentication and management API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
-
 
 # LOGGING (Production Friendly)
 

@@ -14,77 +14,60 @@ from .serializers import (
     RegisterSerializer,
 )
 from .tokens import email_verification_token
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
 
 User = get_user_model()
 
 class RegisterView(generics.CreateAPIView):
     """
-    Registers a new user and sends an email verification link.
+    Register a new user.
+
+    - Creates a user account
+    - Sends an email verification link
     """
+
     serializer_class = RegisterSerializer
-    permission_classes = [permissions.AllowAny]
 
     def perform_create(self, serializer):
         user = serializer.save()
-        self._send_verification_email(user)
 
-    def _send_verification_email(self, user):
-        """
-        Generates and sends the email verification link.
-        """
         token = email_verification_token.make_token(user)
+        verification_url = self._build_verification_url(user, token)
 
-        verify_path = reverse(
-            "email-verify",
-            kwargs={"uid": user.pk, "token": token},
-        )
+        self._send_verification_email(user.email, verification_url)
 
-        verify_url = f"http://localhost:8000{verify_path}"
+    def _build_verification_url(self, user, token) -> str:
+        path = reverse("email-verify", args=[user.pk, token])
+        return f"http://localhost:8000{path}"
 
-        subject = "Verify your email address"
-        message = (
-            f"Hi {user.username},\n\n"
-            f"Please verify your email by clicking the link below:\n"
-            f"{verify_url}\n\n"
-            f"If you did not create this account, you can ignore this email."
-        )
-
+    def _send_verification_email(self, email: str, url: str) -> None:
         send_mail(
-            subject=subject,
-            message=message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+            subject="Verify your email address",
+            message=f"Click the link to verify your account:\n{url}",
+            from_email=None,
+            recipient_list=[email],
         )
 
-class VerifyEmailView(APIView):
-    """
-    Verifies a user's email using a token.
-    """
-    permission_classes = [permissions.AllowAny]
 
-    def get(self, request, uid, token):
+class VerifyEmailView(generics.GenericAPIView):
+    """
+    Verify a user's email address.
+    """
+
+    def get(self, request, uid: int, token: str):
         user = get_object_or_404(User, pk=uid)
-
-        if user.is_email_verified:
-            return Response(
-                {"detail": "Email already verified."},
-                status=status.HTTP_200_OK,
-            )
 
         if not email_verification_token.check_token(user, token):
             return Response(
-                {"detail": "Invalid or expired verification link."},
+                {"detail": "Invalid or expired token"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         user.is_email_verified = True
         user.save(update_fields=["is_email_verified"])
 
-        return Response(
-            {"detail": "Email successfully verified."},
-            status=status.HTTP_200_OK,
-        )
+        return Response({"detail": "Email verified successfully"})
 class LoginView(TokenObtainPairView):
     """
     JWT login view with email verification check.
@@ -121,3 +104,14 @@ class MeView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+@extend_schema(
+    summary="Register a new user",
+    description="Creates a new user account and sends an email verification link.",
+    responses={
+        201: OpenApiResponse(description="User created successfully"),
+        400: OpenApiResponse(description="Invalid input"),
+    },
+)
+class RegisterView(generics.CreateAPIView):
+    ...
