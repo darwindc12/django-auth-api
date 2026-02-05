@@ -57,20 +57,15 @@ class RegisterView(generics.CreateAPIView):
             fail_silently=False,
         )
 
-class VerifyEmailView(APIView):
+from django.shortcuts import get_object_or_404
+
+class VerifyEmailView(generics.GenericAPIView):
     """
-    Verifies a user's email using a token.
+    Verifies a user's email using a one-time token.
     """
-    permission_classes = [permissions.AllowAny]
 
     def get(self, request, uid, token):
         user = get_object_or_404(User, pk=uid)
-
-        if user.is_email_verified:
-            return Response(
-                {"detail": "Email already verified."},
-                status=status.HTTP_200_OK,
-            )
 
         if not email_verification_token.check_token(user, token):
             return Response(
@@ -85,6 +80,7 @@ class VerifyEmailView(APIView):
             {"detail": "Email successfully verified."},
             status=status.HTTP_200_OK,
         )
+
 class LoginView(TokenObtainPairView):
     """
     JWT login view with email verification check.
@@ -121,3 +117,6 @@ class MeView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+    

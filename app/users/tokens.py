@@ -11,11 +11,10 @@ class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
     """
 
     def _make_hash_value(self, user, timestamp):
-        return (
-            f"{user.pk}"
-            f"{user.is_email_verified}"
-            f"{timestamp}"
-        )
+        """
+        Token becomes invalid once the user verifies their email.
+        """
+        return f"{user.pk}{timestamp}{user.is_email_verified}"
 
 
 email_verification_token = EmailVerificationTokenGenerator()

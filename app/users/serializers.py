@@ -59,18 +59,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Create user using Django's create_user
-        to ensure password hashing.
+        Create a new user with a hashed password.
+        Email verification is required after registration.
         """
-        user = User.objects.create_user(
-            email=validated_data["email"],
-            username=validated_data["username"],
-            password=validated_data["password"],
-        )
+        password = validated_data.pop("password")
 
-        # Email verification happens later
+        user = User(**validated_data)
+        user.set_password(password)
         user.is_active = True
-        user.save(update_fields=["is_active"])
+        user.save()
 
         return user
 
